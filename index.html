@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACE Engineering College - Student Performance Portal</title>
+  <meta name="description" content="Role-based academic portal for ACE Engineering College student performance tracking">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --input-bg: #ffffff;
+      
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      
+      /* Dynamic Login Accent */
+      --accent: #0284c7;
+      --accent-glow: rgba(2, 132, 199, 0.3);
+      --accent-gradient: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+      --radius: 10px;
+    }
+
+    /* Dark Theme */
+    body.dark-theme {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --input-bg: #1f2937;
+      --primary-light: #1e293b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; font-size: 14px; transition: background 0.25s, color 0.25s; }
+    .tabular-nums { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+    a { color: var(--primary); text-decoration: none; cursor: pointer; }
+    button { cursor: pointer; border: none; font-family: inherit; }
+    
+    /* Layout */
+    .app-shell { display: flex; min-height: 100vh; }
+    .sidebar { width: 250px; background: var(--card-bg); border-right: 1px solid var(--card-border); display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid var(--card-border); }
+    .brand-title { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+    .brand-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .sidebar-nav { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .nav-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; color: var(--text-muted); background: transparent; text-align: left; transition: all 0.15s; }
+    .nav-btn:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+    body.dark-theme .nav-btn:hover { background: rgba(255,255,255,0.06); }
+    .nav-btn.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+    .nav-badge { background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 99px; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--card-border); }
+    
+    .main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+    .topbar { height: 60px; background: var(--card-bg); border-bottom: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 20; }
+    .user-pill { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .role-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+    .role-admin { background: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8; }
+    .role-lecturer { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .role-student { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    
+    .content-body { padding: 24px; flex: 1; max-width: 1400px; width: 100%; margin: 0 auto; }
+    
+    /* UI Cards */
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: 1fr; } .sidebar { display: none; } }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } .grid-4 { grid-template-columns: 1fr; } }
+    
+    .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 26px; font-weight: 800; margin-top: 6px; color: var(--text); }
+    .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    
+    .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge-excellent { background: #dcfce7; color: #15803d; }
+    .badge-good { background: #e0f2fe; color: #0369a1; }
+    .badge-average { background: #fef3c7; color: #b45309; }
+    .badge-needs-imp { background: #fee2e2; color: #b91c1c; }
+    
+    .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-secondary { background: var(--card-bg); color: var(--text); border: 1px solid var(--card-border); }
+    .btn-secondary:hover { background: rgba(0,0,0,0.04); }
+    body.dark-theme .btn-secondary:hover { background: rgba(255,255,255,0.06); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    
+    .theme-toggle-btn { background: transparent; border: 1px solid var(--card-border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
+    .theme-toggle-btn:hover { background: rgba(0,0,0,0.04); }
+    
+    .table-container { width: 100%; overflow-x: auto; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th { background: rgba(0,0,0,0.02); padding: 10px 14px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--card-border); white-space: nowrap; }
+    body.dark-theme th { background: rgba(255,255,255,0.02); }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--card-border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0,0,0,0.015); }
+    body.dark-theme tr:hover td { background: rgba(255,255,255,0.02); }
+    
+    .progress-bar-bg { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+    body.dark-theme .progress-bar-bg { background: #374151; }
+    .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .form-input, .form-select { width: 100%; padding: 9px 12px; border: 1px solid var(--card-border); border-radius: 8px; font-size: 13px; background: var(--input-bg); color: var(--text); outline: none; transition: all 0.15s; }
+    .form-input:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    
+    /* Toast */
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { pointer-events: auto; padding: 12px 18px; border-radius: 8px; background: #0f172a; color: #fff; font-size: 13px; font-weight: 500; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; animation: slideIn 0.2s ease-out; }
+    .toast-success { background: #15803d; }
+    .toast-error { background: #b91c1c; }
+    .toast-info { background: #0284c7; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    
+    /* Modals */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .modal { background: var(--card-bg); color: var(--text); border: 1px solid var(--card-border); border-radius: 12px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); }
+    .modal-lg { max-width: 850px; }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .modal-close { background: transparent; font-size: 20px; color: var(--text-muted); cursor: pointer; }
+    .modal-body { padding: 20px; }
+    .modal-footer { padding: 14px 20px; border-top: 1px solid var(--card-border); background: rgba(0,0,0,0.02); display: flex; justify-content: flex-end; gap: 10px; }
+
+    /* =========================================================================
+       LOGIN PAGE: APEX INSTITUTE OF TECHNOLOGY & SCIENCE BACKGROUND + CENTERED SIGN-IN
+       ========================================================================= */
+    .login-container {
+      min-height: 100vh;
+      width: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+      overflow-x: hidden;
+      background: radial-gradient(circle at 50% 15%, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+      box-sizing: border-box;
+    }
+
+    /* Architectural Tech Grid Backdrop */
+    .bg-grid-pattern {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, transparent 80%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Massive Institutional Watermark Typography in Background */
+    .bg-watermark {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      z-index: 1;
+      opacity: 0.8;
+    }
+    .bg-watermark-row {
+      font-size: clamp(36px, 6.5vw, 92px);
+      font-weight: 900;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.028);
+      letter-spacing: 6px;
+      line-height: 1.1;
+      text-align: center;
+      user-select: none;
+      white-space: nowrap;
+      transform: rotate(-7deg);
+    }
+
+    /* Floating Animated Glow Orbs */
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, rgba(99, 102, 241, 0.02) 70%);
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      animation: floatUp 18s infinite ease-in-out;
+      z-index: 2;
+    }
+    .bubble-1 { width: 320px; height: 320px; left: -60px; top: 10%; animation-duration: 20s; }
+    .bubble-2 { width: 380px; height: 380px; right: -80px; bottom: 8%; animation-duration: 24s; animation-delay: 2s; background: radial-gradient(circle, rgba(168, 85, 247, 0.16) 0%, rgba(236, 72, 153, 0.01) 70%); }
+    .bubble-3 { width: 200px; height: 200px; left: 25%; bottom: -40px; animation-duration: 16s; animation-delay: 5s; }
+    .bubble-4 { width: 240px; height: 240px; right: 20%; top: -50px; animation-duration: 22s; animation-delay: 7s; background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%); }
+    @keyframes floatUp {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.06); }
+    }
+
+    /* Top Corner Theme Toggle */
+    .login-theme-btn-wrap {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      z-index: 20;
+    }
+    .login-theme-btn-wrap .theme-toggle-btn {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+      font-weight: 600;
+      padding: 7px 13px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .login-theme-btn-wrap .theme-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      transform: translateY(-1px);
+    }
+
+    /* Ambient College Branding Header */
+    .login-college-header {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      color: #ffffff;
+      margin-bottom: 24px;
+      max-width: 720px;
+      width: 100%;
+    }
+    .college-crest-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      color: #38bdf8;
+      margin-bottom: 12px;
+    }
+    .college-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+    .login-college-title {
+      font-size: clamp(24px, 4vw, 34px);
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      color: #ffffff;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      line-height: 1.2;
+    }
+    .login-college-meta {
+      font-size: 13px;
+      font-weight: 500;
+      color: #94a3b8;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .login-college-meta span { display: inline-flex; align-items: center; gap: 4px; }
+
+    /* Middle Centered Glassmorphism Login Card */
+    .login-card-wrapper {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .glass-card {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.4) inset;
+      border-radius: 20px;
+      padding: 32px 34px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-sizing: border-box;
+    }
+    body.dark-theme .glass-card {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255,255,255,0.06) inset;
+    }
+
+    .login-footer-copy {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.65);
+      margin-top: 24px;
+      max-width: 600px;
+    }
+
+    /* Card shake on failed login */
+    .shake-animation {
+      animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
+
+    /* Role Tabs with dynamic accents */
+    .role-tabs-wrap {
+      display: flex;
+      background: rgba(0,0,0,0.05);
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 22px;
+      position: relative;
+    }
+    body.dark-theme .role-tabs-wrap { background: rgba(255,255,255,0.06); }
+    .role-tab-btn {
+      flex: 1;
+      padding: 10px 8px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .role-tab-btn.active {
+      background: var(--card-bg);
+      color: var(--accent);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    /* Input inside icons */
+    .input-with-icon { position: relative; }
+    .input-icon-left {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      pointer-events: none;
+    }
+    .input-with-icon .form-input { padding-left: 42px; padding-right: 42px; }
+    .pwd-toggle-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      color: var(--text-muted);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+    }
+    .pwd-toggle-btn:hover { color: var(--text); }
+
+    /* Gradient Login Button */
+    .btn-login-gradient {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent-gradient);
+      box-shadow: 0 4px 14px var(--accent-glow);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-login-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+    .btn-login-gradient::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -60%;
+      width: 40%;
+      height: 200%;
+      background: rgba(255,255,255,0.25);
+      transform: rotate(25deg);
+      transition: none;
+    }
+    .btn-login-gradient:hover::after {
+      left: 130%;
+      transition: all 0.65s ease-in-out;
+    }
+
+    /* Spinner */
+    .btn-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 600px) {
+      .login-container { padding: 24px 16px; }
+      .glass-card { padding: 24px 20px; }
+      .login-college-title { font-size: 22px; }
+      .login-theme-btn-wrap { top: 12px; right: 12px; }
+    }
+
+    /* =========================================================================
+       MODIFICATION 1: PRINT STYLESHEET (A4, COLOR-ACCURATE, ISOLATED)
+       ========================================================================= */
+    #printArea { display: none; }
+
+    @page {
+      size: A4;
+      margin: 15mm;
+    }
+
+    @media print {
+      body, html {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      /* Hide all UI elements except #printArea */
+      .app-shell, .sidebar, .topbar, .btn, #toast-container, .modal-backdrop, #modal-root, #app, .no-print {
+        display: none !important;
+      }
+      #printArea {
+        display: block !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .print-report-wrapper {
+        width: 100%;
+        color: #0f172a;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .print-header {
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+      .print-college-name {
+        font-size: 22px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: -0.3px;
+        color: #0f172a;
+      }
+      .print-report-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #2563eb;
+        margin-top: 2px;
+      }
+      .print-grid-summary {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+      .print-summary-box {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 8px;
+        text-align: center;
+        background: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .print-summary-val {
+        font-size: 16px;
+        font-weight: 800;
+        margin-top: 4px;
+        color: #0f172a;
+      }
+      .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 16px;
+        page-break-inside: avoid;
+      }
+      .print-table th, .print-table td {
+        border: 1px solid #cbd5e1;
+        padding: 6px 10px;
+        font-size: 11px;
+        text-align: left;
+      }
+      .print-table th {
+        background: #f1f5f9 !important;
+        font-weight: 700;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .print-remarks {
+        border: 1px solid #94a3b8;
+        background: #f8fafc !important;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        margin-bottom: 30px;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .print-signatures {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 50px;
+        page-break-inside: avoid;
+      }
+      .print-sig-col {
+        width: 28%;
+        text-align: center;
+        border-top: 1px solid #475569;
+        padding-top: 6px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .print-footer-note {
+        text-align: center;
+        font-size: 10px;
+        color: #64748b;
+        margin-top: 25px;
+        border-top: 1px dashed #cbd5e1;
+        padding-top: 8px;
+      }
+      .shortage-flag {
+        color: #dc2626 !important;
+        font-weight: 800 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div id="modal-root"></div>
+  <!-- Hidden dedicated print area filled dynamically before window.print() -->
+  <div id="printArea"></div>
+  <div id="app"></div>
+
+  <script src="/src/portal.js"></script>
+</body>
+</html>

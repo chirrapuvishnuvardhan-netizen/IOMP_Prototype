@@ -1,0 +1,6 @@
+{
+  "name": "College Student Performance Portal",
+  "description": "Role-based college academic portal for Admins, Lecturers, and Students with analytics, attendance tracking, marks management, and performance scoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
